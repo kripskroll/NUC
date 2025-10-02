@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NETSCOUT Network Unit Calculator</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Lucide Icons as React components
+        const Upload = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>;
+        
+        const BarChart3 = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>;
+        
+        const Activity = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>;
+        
+        const CheckCircle2 = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>;
+        
+        const AlertCircle = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>;
+        
+        const Download = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>;
+        
+        const Share2 = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>;
+        
+        const Phone = (props) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>;
+
+        const NetscoutCalculator = () => {
+          const [currentView, setCurrentView] = useState('landing');
+          const [trafficProfile, setTrafficProfile] = useState(null);
+          const [selectedDatasets, setSelectedDatasets] = useState({});
+          const [infrastructure, setInfrastructure] = useState({
+            cpu: 32,
+            ram: 128,
+            storage: 10,
+            npu: false
+          });
+          const [manualInput, setManualInput] = useState({
+            avgThroughput: '',
+            peakThroughput: '',
+            webTraffic: '',
+            dbTraffic: '',
+            cloudTraffic: '',
+            other: '',
+            flows: '',
+            apps: ''
+          });
+
+          const datasets = {
+            basic: [
+              { id: 'netflow', name: 'Netflow (Standard)', tokens: 50, cpu: 4, ram: 8, desc: '5-tuple, packets, bytes' },
+              { id: 'enhanced', name: 'Enhanced Netflow', tokens: 120, cpu: 8, ram: 16, desc: '+ TCP flags, latency, jitter' }
+            ],
+            advanced: [
+              { id: 'appIntel', name: 'Application Intelligence', tokens: 200, cpu: 12, ram: 24, desc: '127 apps detected, performance metrics' },
+              { id: 'httpMetrics', name: 'HTTP/HTTPS Metrics', tokens: 150, cpu: 8, ram: 20, desc: 'URLs, status codes, response times, headers' },
+              { id: 'dns', name: 'DNS Intelligence', tokens: 60, cpu: 4, ram: 12, desc: 'Query/response, NXDOMAIN, tunneling detection' },
+              { id: 'database', name: 'Database Monitoring', tokens: 90, cpu: 6, ram: 16, desc: 'SQL queries, slow queries, connection pools' }
+            ],
+            custom: [
+              { id: 'security', name: 'Security Analytics', tokens: 180, cpu: 10, ram: 20, desc: 'Threat indicators, anomaly detection' },
+              { id: 'userExp', name: 'User Experience', tokens: 100, cpu: 6, ram: 16, desc: 'MOS scores, page load times, video quality' }
+            ]
+          };
+
+          const canEnableDataset = (dataset) => {
+            const currentCpu = Object.values(selectedDatasets).reduce((sum, ds) => 
+              ds ? datasets.basic.concat(datasets.advanced, datasets.custom)
+                .find(d => d.id === ds)?.cpu || 0 : sum, 0);
+            const currentRam = Object.values(selectedDatasets).reduce((sum, ds) => 
+              ds ? datasets.basic.concat(datasets.advanced, datasets.custom)
+                .find(d => d.id === ds)?.ram || 0 : sum, 0);
+            
+            const availableCpu = infrastructure.npu ? infrastructure.cpu * 1.67 : infrastructure.cpu;
+            const availableRam = infrastructure.ram;
+            
+            if (selectedDatasets[dataset.id]) return 'enabled';
+            if (currentCpu + dataset.cpu <= availableCpu && currentRam + dataset.ram <= availableRam) {
+              return 'available';
+            }
+            return 'unavailable';
+          };
+
+          const calculateTotalTokens = () => {
+            return Object.entries(selectedDatasets).reduce((sum, [id, enabled]) => {
+              if (!enabled) return sum;
+              const dataset = [...datasets.basic, ...datasets.advanced, ...datasets.custom]
+                .find(d => d.id === id);
+              return sum + (dataset?.tokens || 0);
+            }, 0);
+          };
+
+          const calculateResourceUsage = () => {
+            const usage = { cpu: 0, ram: 0 };
+            Object.entries(selectedDatasets).forEach(([id, enabled]) => {
+              if (enabled) {
+                const dataset = [...datasets.basic, ...datasets.advanced, ...datasets.custom]
+                  .find(d => d.id === id);
+                if (dataset) {
+                  usage.cpu += dataset.cpu;
+                  usage.ram += dataset.ram;
+                }
+              }
+            });
+            return usage;
+          };
+
+          const handleFakeUpload = () => {
+            setTimeout(() => {
+              setTrafficProfile({
+                avgRate: 2.3,
+                peakRate: 5.8,
+                packetDist: '64B (40%), 1500B (35%)',
+                apps: 127,
+                appBreakdown: { web: 45, database: 25, cloud: 15, other: 15 },
+                protocolMix: 'TCP 70%, UDP 25%, Other 5%',
+                flows: 50000,
+                qualityScore: 85
+              });
+              setCurrentView('analysis');
+            }, 1500);
+          };
+
+          const handleManualCalculate = () => {
+            const total = parseFloat(manualInput.webTraffic || 0) + 
+                          parseFloat(manualInput.dbTraffic || 0) + 
+                          parseFloat(manualInput.cloudTraffic || 0) + 
+                          parseFloat(manualInput.other || 0);
+            
+            if (total !== 100) {
+              alert('Traffic composition percentages must add up to 100%');
+              return;
+            }
+
+            setTrafficProfile({
+              avgRate: parseFloat(manualInput.avgThroughput),
+              peakRate: parseFloat(manualInput.peakThroughput),
+              apps: parseInt(manualInput.apps),
+              flows: parseInt(manualInput.flows),
+              appBreakdown: {
+                web: parseFloat(manualInput.webTraffic),
+                database: parseFloat(manualInput.dbTraffic),
+                cloud: parseFloat(manualInput.cloudTraffic),
+                other: parseFloat(manualInput.other)
+              },
+              qualityScore: 75
+            });
+            setCurrentView('analysis');
+          };
+
+          const usage = calculateResourceUsage();
+          const effectiveCpu = infrastructure.npu ? infrastructure.cpu * 1.67 : infrastructure.cpu;
+          const totalTokens = calculateTotalTokens();
+
+          if (currentView === 'landing') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+                <div className="max-w-4xl mx-auto">
+                  <div className="bg-white rounded-2xl shadow-2xl p-12">
+                    <div className="text-center mb-12">
+                      <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                        Network Unit Calculator
+                      </h1>
+                      <p className="text-xl text-gray-600">
+                        Predict your network data costs with precision
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <button
+                        onClick={() => setCurrentView('upload')}
+                        className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-8 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all transform hover:scale-105 shadow-lg"
+                      >
+                        <Upload className="w-12 h-12 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold mb-2">Upload PCAP</h3>
+                        <p className="text-blue-100 text-sm">Best experience with real traffic data</p>
+                      </button>
+                      
+                      <button
+                        onClick={() => setCurrentView('manual')}
+                        className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-8 rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg"
+                      >
+                        <BarChart3 className="w-12 h-12 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold mb-2">Enter Traffic Stats</h3>
+                        <p className="text-purple-100 text-sm">Manual input for quick estimates</p>
+                      </button>
+                      
+                      <button
+                        onClick={() => alert('Live Traffic Connection - Coming Soon!\n\nInstall our lightweight collector to analyze real-time traffic.')}
+                        className="bg-gradient-to-br from-green-500 to-green-600 text-white p-8 rounded-xl hover:from-green-600 hover:to-green-700 transition-all transform hover:scale-105 shadow-lg"
+                      >
+                        <Activity className="w-12 h-12 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold mb-2">Connect Live Traffic</h3>
+                        <p className="text-green-100 text-sm">Most accurate with live monitoring</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'upload') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+                <div className="max-w-3xl mx-auto">
+                  <div className="bg-white rounded-2xl shadow-2xl p-8">
+                    <button 
+                      onClick={() => setCurrentView('landing')}
+                      className="text-blue-600 hover:text-blue-800 mb-6 flex items-center"
+                    >
+                      ← Back to Home
+                    </button>
+                    
+                    <h2 className="text-3xl font-bold text-gray-900 mb-6">Upload PCAP File</h2>
+                    
+                    <div className="border-4 border-dashed border-gray-300 rounded-xl p-16 text-center hover:border-blue-500 transition-colors cursor-pointer"
+                         onClick={handleFakeUpload}>
+                      <Upload className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                      <p className="text-xl text-gray-600 mb-2">Drag & drop PCAP file here or click to browse</p>
+                      <p className="text-sm text-gray-500">(Max 100MB, sample 5-10 minutes of traffic)</p>
+                    </div>
+                    
+                    <div className="mt-8 text-center">
+                      <button
+                        onClick={handleFakeUpload}
+                        className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                      >
+                        Use Demo PCAP File
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'manual') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-8">
+                <div className="max-w-3xl mx-auto">
+                  <div className="bg-white rounded-2xl shadow-2xl p-8">
+                    <button 
+                      onClick={() => setCurrentView('landing')}
+                      className="text-purple-600 hover:text-purple-800 mb-6 flex items-center"
+                    >
+                      ← Back to Home
+                    </button>
+                    
+                    <h2 className="text-3xl font-bold text-gray-900 mb-6">Enter Your Network Traffic Characteristics</h2>
+                    
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-800 mb-4">Bandwidth</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Average throughput (Gbps)
+                            </label>
+                            <input
+                              type="number"
+                              value={manualInput.avgThroughput}
+                              onChange={(e) => setManualInput({...manualInput, avgThroughput: e.target.value})}
+                              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                              placeholder="2.3"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Peak throughput (Gbps)
+                            </label>
+                            <input
+                              type="number"
+                              value={manualInput.peakThroughput}
+                              onChange={(e) => setManualInput({...manualInput, peakThroughput: e.target.value})}
+                              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                              placeholder="5.8"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-800 mb-4">Traffic Composition (%)</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Web/HTTP traffic</label>
+                            <input
+                              type="number"
+                              value={manualInput.webTraffic}
+                              onChange={(e) => setManualInput({...manualInput, webTraffic: e.target.value})}
+                              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                              placeholder="45"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Database traffic</label>
+                            <input
+                              type="number"
+                              value={manualInput.dbTraffic}
+                              onChange={(e) => setManualInput({...manualInput, dbTraffic: e.target.value})}
+                              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                              placeholder="25"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Cloud services</label>
+                            <input
+                              type="number"
+                              value={manualInput.cloudTraffic}
+                              onChange={(e) => setManualInput({...manualInput, cloudTraffic: e.target.value})}
+                              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                              placeholder="15"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Other</label>
+                            <input
+                              type="number"
+                              value={manualInput.other}
+                              onChange={(e) => setManualInput({...manualInput, other: e.target.value})}
+                              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                              placeholder="15"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-800 mb-4">Volume</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Flows per second
+                            </label>
+                            <input
+                              type="number"
+                              value={manualInput.flows}
+                              onChange={(e) => setManualInput({...manualInput, flows: e.target.value})}
+                              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                              placeholder="50000"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Number of unique applications
+                            </label>
+                            <input
+                              type="number"
+                              value={manualInput.apps}
+                              onChange={(e) => setManualInput({...manualInput, apps: e.target.value})}
+                              className="w-full border border-gray-300 rounded-lg px-4 py-2"
+                              placeholder="127"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleManualCalculate}
+                        className="w-full bg-purple-600 text-white px-8 py-3 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-lg"
+                      >
+                        Calculate Tokens
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'analysis') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+                <div className="max-w-3xl mx-auto">
+                  <div className="bg-white rounded-2xl shadow-2xl p-8">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-6">Traffic Profile Detected</h2>
+                    
+                    <div className="space-y-4 mb-8">
+                      <div className="flex items-start">
+                        <CheckCircle2 className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                        <div>
+                          <span className="font-semibold">Average Rate:</span> {trafficProfile.avgRate} Gbps
+                        </div>
+                      </div>
+                      <div className="flex items-start">
+                        <CheckCircle2 className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                        <div>
+                          <span className="font-semibold">Peak Rate:</span> {trafficProfile.peakRate} Gbps
+                        </div>
+                      </div>
+                      {trafficProfile.packetDist && (
+                        <div className="flex items-start">
+                          <CheckCircle2 className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                          <div>
+                            <span className="font-semibold">Packet Size Distribution:</span> {trafficProfile.packetDist}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-start">
+                        <CheckCircle2 className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                        <div>
+                          <span className="font-semibold">Applications Detected:</span> {trafficProfile.apps} unique applications
+                          <div className="ml-6 mt-2 text-sm text-gray-600">
+                            <div>- Web (HTTP/HTTPS): {trafficProfile.appBreakdown.web}%</div>
+                            <div>- Database (MySQL, PostgreSQL): {trafficProfile.appBreakdown.database}%</div>
+                            <div>- Cloud Services (AWS, Azure): {trafficProfile.appBreakdown.cloud}%</div>
+                            <div>- Other: {trafficProfile.appBreakdown.other}%</div>
+                          </div>
+                        </div>
+                      </div>
+                      {trafficProfile.protocolMix && (
+                        <div className="flex items-start">
+                          <CheckCircle2 className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                          <div>
+                            <span className="font-semibold">Protocol Mix:</span> {trafficProfile.protocolMix}
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-start">
+                        <CheckCircle2 className="w-6 h-6 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                        <div>
+                          <span className="font-semibold">Flow Volume:</span> ~{trafficProfile.flows.toLocaleString()} flows/second
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mb-8">
+                      <div className="text-sm font-semibold text-gray-700 mb-2">Quality Score:</div>
+                      <div className="flex items-center">
+                        <div className="flex-1 bg-gray-200 rounded-full h-6">
+                          <div 
+                            className="bg-green-500 h-6 rounded-full flex items-center justify-end pr-2"
+                            style={{width: `${trafficProfile.qualityScore}%`}}
+                          >
+                            <span className="text-white text-xs font-bold">{trafficProfile.qualityScore}/100</span>
+                          </div>
+                        </div>
+                        <span className="ml-4 text-green-600 font-semibold">Excellent</span>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => setCurrentView('configure')}
+                      className="w-full bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg"
+                    >
+                      Continue to Dataset Selection
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'configure') {
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-8">
+                <div className="max-w-7xl mx-auto">
+                  <div className="bg-white rounded-2xl shadow-2xl p-8">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-8">Configure Your Network Monitoring</h2>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-800 mb-6">Select Network Datasets</h3>
+                        
+                        <div className="mb-6">
+                          <h4 className="text-lg font-semibold text-gray-700 mb-3">Basic Datasets</h4>
+                          {datasets.basic.map(dataset => {
+                            const status = canEnableDataset(dataset);
+                            return (
+                              <div key={dataset.id} className="mb-3">
+                                <label className={`flex items-start p-4 rounded-lg cursor-pointer transition-all ${
+                                  status === 'enabled' ? 'bg-green-50 border-2 border-green-500' :
+                                  status === 'available' ? 'bg-gray-50 border-2 border-gray-300 hover:border-blue-400' :
+                                  'bg-red-50 border-2 border-red-300 opacity-60 cursor-not-allowed'
+                                }`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedDatasets[dataset.id] || false}
+                                    onChange={(e) => {
+                                      if (status !== 'unavailable' || selectedDatasets[dataset.id]) {
+                                        setSelectedDatasets({
+                                          ...selectedDatasets,
+                                          [dataset.id]: e.target.checked
+                                        });
+                                      }
+                                    }}
+                                    className="mt-1 mr-3"
+                                    disabled={status === 'unavailable' && !selectedDatasets[dataset.id]}
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-semibold text-gray-800">{dataset.name}</span>
+                                      <span className={`text-sm font-bold ${
+                                        status === 'enabled' ? 'text-green-600' :
+                                        status === 'available' ? 'text-gray-600' :
+                                        'text-red-600'
+                                      }`}>
+                                        {dataset.tokens}K tokens/day
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1">{dataset.desc}</p>
+                                    {status === 'unavailable' && !selectedDatasets[dataset.id] && (
+                                      <p className="text-xs text-red-600 mt-1">Insufficient resources</p>
+                                    )}
+                                  </div>
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div className="mb-6">
+                          <h4 className="text-lg font-semibold text-gray-700 mb-3">Advanced Datasets</h4>
+                          {datasets.advanced.map(dataset => {
+                            const status = canEnableDataset(dataset);
+                            return (
+                              <div key={dataset.id} className="mb-3">
+                                <label className={`flex items-start p-4 rounded-lg cursor-pointer transition-all ${
+                                  status === 'enabled' ? 'bg-green-50 border-2 border-green-500' :
+                                  status === 'available' ? 'bg-gray-50 border-2 border-gray-300 hover:border-blue-400' :
+                                  'bg-red-50 border-2 border-red-300 opacity-60 cursor-not-allowed'
+                                }`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedDatasets[dataset.id] || false}
+                                    onChange={(e) => {
+                                      if (status !== 'unavailable' || selectedDatasets[dataset.id]) {
+                                        setSelectedDatasets({
+                                          ...selectedDatasets,
+                                          [dataset.id]: e.target.checked
+                                        });
+                                      }
+                                    }}
+                                    className="mt-1 mr-3"
+                                    disabled={status === 'unavailable' && !selectedDatasets[dataset.id]}
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-semibold text-gray-800">{dataset.name}</span>
+                                      <span className={`text-sm font-bold ${
+                                        status === 'enabled' ? 'text-green-600' :
+                                        status === 'available' ? 'text-gray-600' :
+                                        'text-red-600'
+                                      }`}>
+                                        {dataset.tokens}K tokens/day
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1">{dataset.desc}</p>
+                                    {status === 'unavailable' && !selectedDatasets[dataset.id] && (
+                                      <p className="text-xs text-red-600 mt-1">Insufficient resources</p>
+                                    )}
+                                  </div>
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        <div>
+                          <h4 className="text-lg font-semibold text-gray-700 mb-3">Custom Datasets</h4>
+                          {datasets.custom.map(dataset => {
+                            const status = canEnableDataset(dataset);
+                            return (
+                              <div key={dataset.id} className="mb-3">
+                                <label className={`flex items-start p-4 rounded-lg cursor-pointer transition-all ${
+                                  status === 'enabled' ? 'bg-green-50 border-2 border-green-500' :
+                                  status === 'available' ? 'bg-gray-50 border-2 border-gray-300 hover:border-blue-400' :
+                                  'bg-red-50 border-2 border-red-300 opacity-60 cursor-not-allowed'
+                                }`}>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedDatasets[dataset.id] || false}
+                                    onChange={(e) => {
+                                      if (status !== 'unavailable' || selectedDatasets[dataset.id]) {
+                                        setSelectedDatasets({
+                                          ...selectedDatasets,
+                                          [dataset.id]: e.target.checked
+                                        });
+                                      }
+                                    }}
+                                    className="mt-1 mr-3"
+                                    disabled={status === 'unavailable' && !selectedDatasets[dataset.id]}
+                                  />
+                                  <div className="flex-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-semibold text-gray-800">{dataset.name}</span>
+                                      <span className={`text-sm font-bold ${
+                                        status === 'enabled' ? 'text-green-600' :
+                                        status === 'available' ? 'text-gray-600' :
+                                        'text-red-600'
+                                      }`}>
+                                        {dataset.tokens}K tokens/day
+                                      </span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mt-1">{dataset.desc}</p>
+                                    {status === 'unavailable' && !selectedDatasets[dataset.id] && (
+                                      <p className="text-xs text-red-600 mt-1">Insufficient resources</p>
+                                    )}
+                                  </div>
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-800 mb-6">Infrastructure Requirements</h3>
+                        
+                        <div className="bg-gray-50 rounded-xl p-6 mb-6">
+                          <div className="mb-6">
+                            <div className="flex justify-between mb-2">
+                              <label className="font-semibold text-gray-700">CPU Cores</label>
+                              <span className={`font-bold ${usage.cpu <= effectiveCpu ? 'text-green-600' : 'text-red-600'}`}>
+                                {usage.cpu} / {Math.round(effectiveCpu)} cores used
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min="16"
+                              max="64"
+                              step="4"
+                              value={infrastructure.cpu}
+                              onChange={(e) => setInfrastructure({...infrastructure, cpu: parseInt(e.target.value)})}
+                              className="w-full"
+                            />
+                            <div className="flex justify-between text-sm text-gray-600 mt-1">
+                              <span>Min: 16</span>
+                              <span>Current: {infrastructure.cpu}</span>
+                              <span>Max: 64</span>
+                            </div>
+                            <div className="mt-2 h-4 bg-gray-200 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full transition-all ${usage.cpu <= effectiveCpu ? 'bg-green-500' : 'bg-red-500'}`}
+                                style={{width: `${Math.min((usage.cpu / effectiveCpu) * 100, 100)}%`}}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mb-6">
+                            <div className="flex justify-between mb-2">
+                              <label className="font-semibold text-gray-700">RAM (GB)</label>
+                              <span className={`font-bold ${usage.ram <= infrastructure.ram ? 'text-green-600' : 'text-red-600'}`}>
+                                {usage.ram} / {infrastructure.ram} GB used
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min="64"
+                              max="256"
+                              step="32"
+                              value={infrastructure.ram}
+                              onChange={(e) => setInfrastructure({...infrastructure, ram: parseInt(e.target.value)})}
+                              className="w-full"
+                            />
+                            <div className="flex justify-between text-sm text-gray-600 mt-1">
+                              <span>Min: 64GB</span>
+                              <span>Current: {infrastructure.ram}GB</span>
+                              <span>Max: 256GB</span>
+                            </div>
+                            <div className="mt-2 h-4 bg-gray-200 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full transition-all ${usage.ram <= infrastructure.ram ? 'bg-green-500' : 'bg-red-500'}`}
+                                style={{width: `${Math.min((usage.ram / infrastructure.ram) * 100, 100)}%`}}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mb-6">
+                            <div className="flex justify-between mb-2">
+                              <label className="font-semibold text-gray-700">Storage (NVMe TB)</label>
+                              <span className="font-bold text-gray-800">{infrastructure.storage} TB</span>
+                            </div>
+                            <input
+                              type="range"
+                              min="5"
+                              max="20"
+                              step="1"
+                              value={infrastructure.storage}
+                              onChange={(e) => setInfrastructure({...infrastructure, storage: parseInt(e.target.value)})}
+                              className="w-full"
+                            />
+                            <div className="flex justify-between text-sm text-gray-600 mt-1">
+                              <span>Min: 5TB</span>
+                              <span>Current: {infrastructure.storage}TB</span>
+                              <span>Max: 20TB</span>
+                            </div>
+                          </div>
+
+                          <div className="bg-white rounded-lg p-4 border-2 border-blue-300">
+                            <label className="flex items-start cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={infrastructure.npu}
+                                onChange={(e) => setInfrastructure({...infrastructure, npu: e.target.checked})}
+                                className="mt-1 mr-3"
+                              />
+                              <div>
+                                <span className="font-semibold text-gray-800">Add NPU-1000 Accelerator</span>
+                                <p className="text-sm text-gray-600 mt-1">
+                                  → Reduces Resources between 20% and 60%<br/>
+                                  depending on traffic input and selected datasets.<br/>
+                                </p>
+                              </div>
+                            </label>
+                          </div>
+                        </div>
+
+                        <div className={`rounded-xl p-6 mb-6 ${
+                          usage.cpu <= effectiveCpu && usage.ram <= infrastructure.ram 
+                            ? 'bg-green-50 border-2 border-green-500' 
+                            : 'bg-red-50 border-2 border-red-500'
+                        }`}>
+                          <div className="flex items-center">
+                            {usage.cpu <= effectiveCpu && usage.ram <= infrastructure.ram ? (
+                              <>
+                                <CheckCircle2 className="w-8 h-8 text-green-600 mr-3" />
+                                <span className="text-green-800 font-semibold">
+                                  All datasets will process in real-time
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <AlertCircle className="w-8 h-8 text-red-600 mr-3" />
+                                <span className="text-red-800 font-semibold">
+                                  Insufficient resources for selected datasets
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="bg-blue-50 rounded-xl p-6 border-2 border-blue-300">
+                          <h4 className="font-bold text-gray-800 mb-4">Token Requirements</h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Daily:</span>
+                              <span className="font-bold">{totalTokens}K tokens</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Monthly:</span>
+                              <span className="font-bold">{(totalTokens * 30 / 1000).toFixed(1)}M tokens</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Annual:</span>
+                              <span className="font-bold">{(totalTokens * 365 / 1000).toFixed(0)}M tokens</span>
+                            </div>
+                            <div className="flex justify-between pt-2 border-t-2 border-blue-300">
+                              <span className="font-semibold">3-Year Term:</span>
+                              <span className="font-bold text-lg">{(totalTokens * 365 * 3 / 1000).toFixed(0)}M tokens</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 space-y-3">
+                          <button
+                            onClick={() => setCurrentView('quote')}
+                            className="w-full bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={usage.cpu > effectiveCpu || usage.ram > infrastructure.ram}
+                          >
+                            Generate Final Quote
+                          </button>
+                          
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              onClick={() => alert('Compare Scenarios - Coming Soon!\n\nCompare Basic, Standard, and Full AI Stack configurations.')}
+                              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                            >
+                              Compare
+                            </button>
+                            <button
+                              onClick={() => alert('Growth Projections - Coming Soon!\n\nProject token consumption over 3-5 years with expected growth.')}
+                              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                            >
+                              Growth
+                            </button>
+                            <button
+                              onClick={() => alert('What-If Analysis - Coming Soon!\n\nSee real-time impact of traffic changes and new datasets.')}
+                              className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                            >
+                              What-If
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          if (currentView === 'quote') {
+            const annualTokens = (totalTokens * 365 / 1000).toFixed(0);
+            const threeYearTokens = (totalTokens * 365 * 3 / 1000).toFixed(0);
+            
+            return (
+              <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100 p-8">
+                <div className="max-w-4xl mx-auto">
+                  <div className="bg-white rounded-2xl shadow-2xl p-8">
+                    <button 
+                      onClick={() => setCurrentView('configure')}
+                      className="text-blue-600 hover:text-blue-800 mb-6 flex items-center"
+                    >
+                      ← Back to Configuration
+                    </button>
+
+                    <h2 className="text-3xl font-bold text-gray-900 mb-8">Your Token Calculator Results</h2>
+                    
+                    <div className="mb-8">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4">TRAFFIC PROFILE</h3>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-gray-700">• Average: {trafficProfile.avgRate} Gbps | Peak: {trafficProfile.peakRate} Gbps</p>
+                        <p className="text-gray-700">• Applications: {trafficProfile.apps} detected</p>
+                        <p className="text-gray-700">• Quality Score: {trafficProfile.qualityScore}/100 (Excellent)</p>
+                      </div>
+                    </div>
+
+                    <div className="mb-8">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4">SELECTED DATASETS</h3>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        {Object.entries(selectedDatasets).map(([id, enabled]) => {
+                          if (!enabled) return null;
+                          const dataset = [...datasets.basic, ...datasets.advanced, ...datasets.custom]
+                            .find(d => d.id === id);
+                          return (
+                            <p key={id} className="text-gray-700">• {dataset?.name}</p>
+                          );
+                        })}
+                        {Object.values(selectedDatasets).every(v => !v) && (
+                          <p className="text-gray-500 italic">No datasets selected</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mb-8">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4">TOKEN REQUIREMENTS</h3>
+                      <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-300">
+                        <p className="text-gray-700">• Daily: {totalTokens}K tokens</p>
+                        <p className="text-gray-700">• Monthly: {(totalTokens * 30 / 1000).toFixed(1)}M tokens</p>
+                        <p className="text-gray-700">• Annual: {annualTokens}M tokens</p>
+                        <p className="text-gray-700 font-bold text-lg mt-2">• 3-Year Term: {threeYearTokens}M tokens</p>
+                      </div>
+                    </div>
+
+                    <div className="mb-8 bg-gradient-to-r from-blue-100 to-green-100 rounded-xl p-6 border-2 border-blue-400">
+                      <h3 className="text-2xl font-bold text-gray-900 mb-4">RECOMMENDED PURCHASE</h3>
+                      <div className="space-y-2">
+                        <p className="text-lg font-semibold">{Math.ceil(threeYearTokens / 50) * 50}M Network Units (3-year term)</p>
+                        <p className="text-gray-700">+ Annual Maintenance (20%)</p>
+                        {infrastructure.npu && <p className="text-gray-700">+ NPU-1000 Accelerator</p>}
+                        <div className="mt-4 pt-4 border-t-2 border-blue-300">
+                          <p className="text-xl font-bold">Total Investment: Contact Sales for Quote</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mb-8">
+                      <h3 className="text-xl font-bold text-gray-800 mb-4">INFRASTRUCTURE REQUIREMENTS</h3>
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <p className="text-gray-700">• CPU: {infrastructure.npu ? `${Math.round(usage.cpu)} cores (with NPU)` : `${infrastructure.cpu} cores`}</p>
+                        <p className="text-gray-700">• RAM: {infrastructure.ram} GB</p>
+                        <p className="text-gray-700">• Storage: {infrastructure.storage} TB NVMe</p>
+                        <p className="text-gray-700">• Network: 10 Gbps</p>
+                      </div>
+                      <div className="mt-4 bg-gray-50 rounded-lg p-4">
+                        <p className="font-semibold text-gray-800 mb-2">Estimated Infrastructure Cost:</p>
+                        <p className="text-gray-700">• Cloud (AWS): ~$4,200/month</p>
+                        <p className="text-gray-700">• On-Premises: ~$35K one-time</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <button
+                        onClick={() => alert('PDF download functionality would be implemented here')}
+                        className="flex items-center justify-center bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                      >
+                        <Download className="w-5 h-5 mr-2" />
+                        Download PDF
+                      </button>
+                      <button
+                        onClick={() => alert('Email sharing functionality would be implemented here')}
+                        className="flex items-center justify-center bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
+                      >
+                        <Share2 className="w-5 h-5 mr-2" />
+                        Share via Email
+                      </button>
+                      <button
+                        onClick={() => alert('Sales contact functionality would be implemented here')}
+                        className="flex items-center justify-center bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                      >
+                        <Phone className="w-5 h-5 mr-2" />
+                        Talk to Sales
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        };
+
+        ReactDOM.render(<NetscoutCalculator />, document.getElementById('root'));
+    </script>
+</body>
+</html>
